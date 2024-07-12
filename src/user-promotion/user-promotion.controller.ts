@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
 import { UserPromotionService } from "./user-promotion.service";
 import { User } from "../auth/decorator";
 import { JwtGuard } from "../auth/guard";
@@ -16,19 +16,23 @@ export class UserPromotionController {
     return this.userPromotionService.listPromotion(userId);
   }
 
-  @Get(":promotionId")
+  @Get(":id")
   getPromotion(
-    promotionId: number,
+    @Param('id') promotionId: number,
     @User("id") userId: number
   ) {
     return this.userPromotionService.getPromotion(promotionId, userId);
   }
 
+  @HttpCode(HttpStatus.OK)
   @Post('use-promotion')
   usePromotion(
-    @Body("promotionId") promotionId: number,
+    @Body("promotionId", ParseIntPipe) promotionId: number,
     @User("id") userId: number
   ) {
+    if (!promotionId) {
+      throw new BadRequestException("Promotion ID is required");
+    }
     return this.userPromotionService.usePromotion(promotionId, userId);
   }
 }

@@ -1,5 +1,6 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class UserPromotionService {
@@ -45,21 +46,30 @@ export class UserPromotionService {
     });
 
     if (!userPromotion || userPromotion.userId !== userId) {
-      throw new BadRequestException("User promotion not found");
+      throw new BadRequestException('User promotion not found');
     }
 
     return userPromotion;
   }
 
   async usePromotion(promotionId: number, userId: number) {
-    return this.prisma.userPromotion.delete({
-      where: {
-        userId_promotionId: {
-          userId: userId,
-          promotionId: promotionId
+
+    try {
+      return await this.prisma.userPromotion.delete({
+        where: {
+          userId_promotionId: {
+            userId: userId,
+            promotionId: promotionId
+          }
+        }
+      });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new BadRequestException('User promotion not found');
         }
       }
-    });
+      throw error;
+    }
   }
-
 }
